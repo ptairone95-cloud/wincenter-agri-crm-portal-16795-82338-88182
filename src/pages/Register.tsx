@@ -7,19 +7,19 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
-import { loginSchema } from '@/lib/validation';
+import { registerSchema } from '@/lib/validation';
 
-export default function Login() {
+export default function Register() {
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate input with zod
-    const validation = loginSchema.safeParse({ email, password });
+    const validation = registerSchema.safeParse({ name, email, password });
     if (!validation.success) {
       const firstError = validation.error.errors[0];
       toast.error(firstError.message);
@@ -29,35 +29,31 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const redirectUrl = `${window.location.origin}/`;
+      
+      const { data, error } = await supabase.auth.signUp({
         email: validation.data.email,
         password: validation.data.password,
+        options: {
+          emailRedirectTo: redirectUrl,
+          data: {
+            name: validation.data.name,
+          }
+        }
       });
 
       if (error) throw error;
 
       if (data.user) {
-        // Fetch user role to redirect appropriately
-        const { data: userData, error: userError } = await supabase
-          .from('users')
-          .select('role')
-          .eq('auth_user_id', data.user.id)
-          .eq('status', 'active')
-          .single();
-
-        if (userError) throw userError;
-
-        toast.success('Login realizado com sucesso!');
-        
-        if (userData?.role === 'admin') {
-          navigate('/admin/reports');
-        } else {
-          navigate('/seller/dashboard');
-        }
+        toast.success('Cadastro realizado! Verifique seu email para confirmar.');
+        navigate('/login');
       }
     } catch (error: any) {
-      // Don't log sensitive authentication errors to console
-      toast.error('Erro ao fazer login. Verifique suas credenciais.');
+      if (error.message.includes('already registered')) {
+        toast.error('Este email já está cadastrado.');
+      } else {
+        toast.error('Erro ao criar conta. Tente novamente.');
+      }
     } finally {
       setLoading(false);
     }
@@ -69,7 +65,7 @@ export default function Login() {
       <div 
         className="absolute inset-0 z-0"
         style={{
-          backgroundImage: 'url(https://ouozlpdfkkwcmyayitgm.supabase.co/storage/v1/object/public/brand/580.webp)',
+          backgroundImage: 'url(https://hlyhgpjzosnxaxgpcayi.supabase.co/storage/v1/object/public/brand/580.webp)',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat'
@@ -88,11 +84,25 @@ export default function Login() {
             />
           </div>
           <div>
-            <CardDescription className="text-white">Entre com suas credenciais para acessar o CRM</CardDescription>
+            <CardTitle className="text-white text-2xl">Criar Conta</CardTitle>
+            <CardDescription className="text-white">Preencha seus dados para se cadastrar</CardDescription>
           </div>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleRegister} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name" className="text-white">Nome</Label>
+              <Input
+                id="name"
+                type="text"
+                placeholder="Seu nome completo"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                disabled={loading}
+                required
+                className="bg-white/90 text-black placeholder:text-gray-500"
+              />
+            </div>
             <div className="space-y-2">
               <Label htmlFor="email" className="text-white">Email</Label>
               <Input
@@ -123,15 +133,15 @@ export default function Login() {
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Entrando...
+                  Criando conta...
                 </>
               ) : (
-                'Entrar'
+                'Cadastrar'
               )}
             </Button>
             <div className="text-center">
-              <Link to="/register" className="text-white text-sm hover:underline">
-                Não tem uma conta? Cadastre-se
+              <Link to="/login" className="text-white text-sm hover:underline">
+                Já tem uma conta? Faça login
               </Link>
             </div>
           </form>
