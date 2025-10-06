@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import { registerSchema } from '@/lib/validation';
+import { useSiteSettings } from '@/hooks/useSiteSettings';
 
 export default function Register() {
   const [name, setName] = useState('');
@@ -15,6 +16,7 @@ export default function Register() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { settings } = useSiteSettings();
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,7 +67,7 @@ export default function Register() {
       <div 
         className="absolute inset-0 z-0"
         style={{
-          backgroundImage: 'url(https://hlyhgpjzosnxaxgpcayi.supabase.co/storage/v1/object/public/brand/580.webp)',
+          backgroundImage: `url(${settings?.login_banner_url || 'https://ouozlpdfkkwcmyayitgm.supabase.co/storage/v1/object/public/brand/580.webp'})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat'
@@ -78,7 +80,7 @@ export default function Register() {
         <CardHeader className="space-y-4 text-center">
           <div className="mx-auto">
             <img 
-              src="/logo.png" 
+              src={settings?.logo_url || '/logo.png'} 
               alt="WinCenter" 
               className="h-24 w-auto object-contain mx-auto"
             />

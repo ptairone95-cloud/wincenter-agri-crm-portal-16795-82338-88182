@@ -683,6 +683,39 @@ export type Database = {
           },
         ]
       }
+      site_settings: {
+        Row: {
+          accent_color: string | null
+          id: string
+          login_banner_url: string | null
+          logo_url: string | null
+          primary_color: string | null
+          secondary_color: string | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          accent_color?: string | null
+          id?: string
+          login_banner_url?: string | null
+          logo_url?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          accent_color?: string | null
+          id?: string
+          login_banner_url?: string | null
+          logo_url?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       users: {
         Row: {
           auth_user_id: string | null

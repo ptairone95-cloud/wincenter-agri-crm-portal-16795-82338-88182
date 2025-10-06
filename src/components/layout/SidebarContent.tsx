@@ -22,6 +22,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/auth';
 import { useNotifications } from '@/hooks/useNotifications';
 import { Badge } from '@/components/ui/badge';
+import { useSiteSettings } from '@/hooks/useSiteSettings';
 
 const sellerLinks = [
   { to: '/seller/dashboard', icon: Home, label: 'Dashboard' },
@@ -45,6 +46,7 @@ const adminLinks = [
   { to: '/admin/commission-rules', icon: Settings, label: 'Regras Comissão' },
   { to: '/admin/commissions', icon: DollarSign, label: 'Gestão Comissões' },
   { to: '/admin/users-invites', icon: UserPlus, label: 'Convites' },
+  { to: '/admin/site-settings', icon: Sparkles, label: 'Configurações' },
 ];
 
 interface SidebarContentProps {
@@ -54,6 +56,7 @@ interface SidebarContentProps {
 export function SidebarContent({ onNavigate }: SidebarContentProps) {
   const { signOut, userRole } = useAuth();
   const { unreadCount } = useNotifications();
+  const { settings } = useSiteSettings();
 
   const handleNavClick = () => {
     onNavigate?.();
@@ -64,7 +67,7 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
       <div className="p-6 border-b border-border">
         <div className="flex items-center gap-2">
           <img 
-            src="/logo.png" 
+            src={settings?.logo_url || '/logo.png'} 
             alt="WinCenter" 
             className="h-10 w-10 rounded-lg object-contain"
           />

@@ -8,12 +8,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import { loginSchema } from '@/lib/validation';
+import { useSiteSettings } from '@/hooks/useSiteSettings';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { settings } = useSiteSettings();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,7 +71,7 @@ export default function Login() {
       <div 
         className="absolute inset-0 z-0"
         style={{
-          backgroundImage: 'url(https://ouozlpdfkkwcmyayitgm.supabase.co/storage/v1/object/public/brand/580.webp)',
+          backgroundImage: `url(${settings?.login_banner_url || 'https://ouozlpdfkkwcmyayitgm.supabase.co/storage/v1/object/public/brand/580.webp'})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat'
@@ -82,7 +84,7 @@ export default function Login() {
         <CardHeader className="space-y-4 text-center">
           <div className="mx-auto">
             <img 
-              src="/logo.png" 
+              src={settings?.logo_url || '/logo.png'} 
               alt="WinCenter" 
               className="h-24 w-auto object-contain mx-auto"
             />
