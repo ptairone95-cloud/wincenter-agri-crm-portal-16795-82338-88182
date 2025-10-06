@@ -4,13 +4,14 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, UserPlus, Mail, Clock } from 'lucide-react';
+import { Plus, UserPlus, Mail, Clock, Pencil, Trash2, UserCheck } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 interface User {
   id: string;
@@ -27,8 +28,12 @@ interface User {
 
 export default function UsersInvites() {
   const [users, setUsers] = useState<User[]>([]);
+  const [pendingRegistrations, setPendingRegistrations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -39,6 +44,7 @@ export default function UsersInvites() {
 
   useEffect(() => {
     fetchUsers();
+    fetchPendingRegistrations();
   }, []);
 
   const fetchUsers = async () => {
@@ -54,6 +60,28 @@ export default function UsersInvites() {
       console.error('Error fetching users:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchPendingRegistrations = async () => {
+    try {
+      // Buscar usuários autenticados sem registro na tabela users
+      const { data: { users: authUsers }, error: authError } = await supabase.auth.admin.listUsers();
+      
+      if (authError) throw authError;
+      
+      const { data: existingUsers, error: usersError } = await supabase
+        .from('users')
+        .select('auth_user_id');
+      
+      if (usersError) throw usersError;
+      
+      const existingAuthIds = new Set(existingUsers?.map(u => u.auth_user_id) || []);
+      const pending = (authUsers || []).filter(u => !existingAuthIds.has(u.id));
+      
+      setPendingRegistrations(pending);
+    } catch (error) {
+      console.error('Error fetching pending registrations:', error);
     }
   };
 
@@ -86,6 +114,97 @@ export default function UsersInvites() {
     } catch (error: any) {
       console.error('Error sending invite:', error);
       toast.error('Erro ao enviar convite: ' + error.message);
+    }
+  };
+
+  const handleEdit = (user: User) => {
+    setSelectedUser(user);
+    setFormData({
+      name: user.name,
+      email: user.email,
+      phone: user.phone || '',
+      role: user.role,
+      region: user.region || '',
+    });
+    setEditDialogOpen(true);
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!selectedUser) return;
+    
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone || null,
+          role: formData.role as 'admin' | 'seller' | 'technician',
+          region: formData.region || null,
+        })
+        .eq('id', selectedUser.id);
+
+      if (error) throw error;
+
+      toast.success('Usuário atualizado com sucesso!');
+      setEditDialogOpen(false);
+      setSelectedUser(null);
+      setFormData({ name: '', email: '', phone: '', role: 'seller', region: '' });
+      fetchUsers();
+    } catch (error: any) {
+      console.error('Error updating user:', error);
+      toast.error('Erro ao atualizar usuário: ' + error.message);
+    }
+  };
+
+  const handleDeleteClick = (user: User) => {
+    setSelectedUser(user);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!selectedUser) return;
+    
+    try {
+      const { error } = await supabase
+        .from('users')
+        .delete()
+        .eq('id', selectedUser.id);
+
+      if (error) throw error;
+
+      toast.success('Usuário excluído com sucesso!');
+      setDeleteDialogOpen(false);
+      setSelectedUser(null);
+      fetchUsers();
+    } catch (error: any) {
+      console.error('Error deleting user:', error);
+      toast.error('Erro ao excluir usuário: ' + error.message);
+    }
+  };
+
+  const handleAcceptRegistration = async (authUser: any) => {
+    try {
+      const { error } = await supabase
+        .from('users')
+        .insert([{
+          auth_user_id: authUser.id,
+          email: authUser.email,
+          name: authUser.user_metadata?.name || authUser.email,
+          role: 'seller',
+          status: 'active',
+        }]);
+
+      if (error) throw error;
+
+      toast.success('Cadastro aceito com sucesso!');
+      fetchUsers();
+      fetchPendingRegistrations();
+    } catch (error: any) {
+      console.error('Error accepting registration:', error);
+      toast.error('Erro ao aceitar cadastro: ' + error.message);
     }
   };
 
@@ -252,6 +371,50 @@ export default function UsersInvites() {
 
         <Card>
           <CardHeader>
+            <CardTitle>Cadastros Pendentes de Aprovação</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {pendingRegistrations.length === 0 ? (
+              <p className="text-center py-8 text-muted-foreground">
+                Nenhum cadastro pendente de aprovação
+              </p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Nome</TableHead>
+                    <TableHead>Data de Cadastro</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {pendingRegistrations.map((authUser) => (
+                    <TableRow key={authUser.id}>
+                      <TableCell>{authUser.email}</TableCell>
+                      <TableCell>{authUser.user_metadata?.name || '-'}</TableCell>
+                      <TableCell>
+                        {new Date(authUser.created_at).toLocaleDateString('pt-BR')}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          size="sm"
+                          onClick={() => handleAcceptRegistration(authUser)}
+                        >
+                          <UserCheck className="mr-2 h-4 w-4" />
+                          Aceitar
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
             <CardTitle>Lista de Usuários</CardTitle>
           </CardHeader>
           <CardContent>
@@ -265,12 +428,13 @@ export default function UsersInvites() {
                   <TableHead>Região</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Data Convite</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {users.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                       Nenhum usuário encontrado
                     </TableCell>
                   </TableRow>
@@ -302,6 +466,24 @@ export default function UsersInvites() {
                             ? new Date(user.invited_at).toLocaleDateString('pt-BR')
                             : '-'}
                         </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex gap-2 justify-end">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleEdit(user)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => handleDeleteClick(user)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
                       </TableRow>
                     );
                   })
@@ -310,6 +492,87 @@ export default function UsersInvites() {
             </Table>
           </CardContent>
         </Card>
+
+        {/* Edit Dialog */}
+        <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Editar Usuário</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleUpdate} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-name">Nome</Label>
+                <Input
+                  id="edit-name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-email">Email</Label>
+                <Input
+                  id="edit-email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-phone">Telefone</Label>
+                <Input
+                  id="edit-phone"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-role">Função</Label>
+                <Select value={formData.role} onValueChange={(value) => setFormData({ ...formData, role: value })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="seller">Vendedor</SelectItem>
+                    <SelectItem value="technician">Técnico</SelectItem>
+                    <SelectItem value="admin">Administrador</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-region">Região</Label>
+                <Input
+                  id="edit-region"
+                  value={formData.region}
+                  onChange={(e) => setFormData({ ...formData, region: e.target.value })}
+                />
+              </div>
+              <Button type="submit" className="w-full">
+                Salvar Alterações
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tem certeza que deseja excluir o usuário <strong>{selectedUser?.name}</strong>?
+                Esta ação não pode ser desfeita.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Excluir
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </AppLayout>
   );
