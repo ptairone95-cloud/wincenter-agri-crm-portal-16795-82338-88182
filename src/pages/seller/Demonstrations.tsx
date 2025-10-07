@@ -19,6 +19,7 @@ import { toast } from 'sonner';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO, addMonths, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { WeatherForecast } from '@/components/WeatherForecast';
 
 interface Demonstration {
   id: string;
@@ -547,6 +548,8 @@ export default function Demonstrations() {
             </CardContent>
           </Card>
         </div>
+
+        <WeatherForecast />
 
         <Tabs defaultValue="lista" className="space-y-4">
           <TabsList>
