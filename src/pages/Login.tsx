@@ -42,12 +42,24 @@ export default function Login() {
         // Fetch user role to redirect appropriately
         const { data: userData, error: userError } = await supabase
           .from('users')
-          .select('role')
+          .select('role, status')
           .eq('auth_user_id', data.user.id)
-          .eq('status', 'active')
           .single();
 
         if (userError) throw userError;
+
+        // Verificar se o cadastro está pendente de aprovação
+        if (userData?.status === 'pending') {
+          await supabase.auth.signOut();
+          toast.error('Seu cadastro ainda está aguardando aprovação do administrador. Por favor, aguarde.');
+          return;
+        }
+
+        if (userData?.status !== 'active') {
+          await supabase.auth.signOut();
+          toast.error('Sua conta está inativa. Entre em contato com o administrador.');
+          return;
+        }
 
         toast.success('Login realizado com sucesso!');
         

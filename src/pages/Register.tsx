@@ -47,7 +47,9 @@ export default function Register() {
       if (error) throw error;
 
       if (data.user) {
-        toast.success('Cadastro realizado! Verifique seu email para confirmar.');
+        toast.success('Cadastro realizado com sucesso! Aguarde a aprovação do administrador para acessar o sistema.', {
+          duration: 6000
+        });
         navigate('/login');
       }
     } catch (error: any) {

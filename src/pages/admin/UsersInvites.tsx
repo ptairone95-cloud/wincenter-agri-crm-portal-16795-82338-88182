@@ -24,11 +24,11 @@ interface User {
   invited_at: string;
   invite_expires_at: string;
   auth_user_id: string;
+  created_at: string;
 }
 
 export default function UsersInvites() {
   const [users, setUsers] = useState<User[]>([]);
-  const [pendingRegistrations, setPendingRegistrations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -44,7 +44,6 @@ export default function UsersInvites() {
 
   useEffect(() => {
     fetchUsers();
-    fetchPendingRegistrations();
   }, []);
 
   const fetchUsers = async () => {
@@ -60,28 +59,6 @@ export default function UsersInvites() {
       console.error('Error fetching users:', error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchPendingRegistrations = async () => {
-    try {
-      // Buscar usuários autenticados sem registro na tabela users
-      const { data: { users: authUsers }, error: authError } = await supabase.auth.admin.listUsers();
-      
-      if (authError) throw authError;
-      
-      const { data: existingUsers, error: usersError } = await supabase
-        .from('users')
-        .select('auth_user_id');
-      
-      if (usersError) throw usersError;
-      
-      const existingAuthIds = new Set(existingUsers?.map(u => u.auth_user_id) || []);
-      const pending = (authUsers || []).filter(u => !existingAuthIds.has(u.id));
-      
-      setPendingRegistrations(pending);
-    } catch (error) {
-      console.error('Error fetching pending registrations:', error);
     }
   };
 
@@ -185,33 +162,30 @@ export default function UsersInvites() {
     }
   };
 
-  const handleAcceptRegistration = async (authUser: any) => {
+  const handleAcceptRegistration = async (user: User) => {
     try {
       const { error } = await supabase
         .from('users')
-        .insert([{
-          auth_user_id: authUser.id,
-          email: authUser.email,
-          name: authUser.user_metadata?.name || authUser.email,
-          role: 'seller',
+        .update({
           status: 'active',
-        }]);
+        })
+        .eq('id', user.id);
 
       if (error) throw error;
 
-      toast.success('Cadastro aceito com sucesso!');
+      toast.success('Cadastro aprovado com sucesso!');
       fetchUsers();
-      fetchPendingRegistrations();
     } catch (error: any) {
       console.error('Error accepting registration:', error);
-      toast.error('Erro ao aceitar cadastro: ' + error.message);
+      toast.error('Erro ao aprovar cadastro: ' + error.message);
     }
   };
 
   const getStatusInfo = (status: string) => {
     const statuses: Record<string, { label: string; color: string }> = {
       active: { label: 'Ativo', color: 'bg-green-100 text-green-800' },
-      invited: { label: 'Pendente', color: 'bg-yellow-100 text-yellow-800' },
+      pending: { label: 'Aguardando Aprovação', color: 'bg-orange-100 text-orange-800' },
+      invited: { label: 'Convite Enviado', color: 'bg-yellow-100 text-yellow-800' },
       inactive: { label: 'Inativo', color: 'bg-gray-100 text-gray-800' },
     };
     return statuses[status] || { label: status, color: 'bg-gray-100 text-gray-800' };
@@ -227,7 +201,8 @@ export default function UsersInvites() {
   };
 
   const activeUsers = users.filter(u => u.status === 'active');
-  const pendingUsers = users.filter(u => u.status === 'invited');
+  const pendingApprovalUsers = users.filter(u => u.status === 'pending');
+  const pendingInvites = users.filter(u => u.status === 'invited');
   const totalSellers = users.filter(u => (u.role === 'seller' || u.role === 'technician') && u.status === 'active');
 
   if (loading) {
@@ -336,7 +311,7 @@ export default function UsersInvites() {
               <Clock className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-yellow-600">{pendingUsers.length}</div>
+              <div className="text-2xl font-bold text-yellow-600">{pendingInvites.length}</div>
               <p className="text-xs text-muted-foreground mt-1">
                 Aguardando confirmação
               </p>
@@ -374,7 +349,7 @@ export default function UsersInvites() {
             <CardTitle>Cadastros Pendentes de Aprovação</CardTitle>
           </CardHeader>
           <CardContent>
-            {pendingRegistrations.length === 0 ? (
+            {pendingApprovalUsers.length === 0 ? (
               <p className="text-center py-8 text-muted-foreground">
                 Nenhum cadastro pendente de aprovação
               </p>
@@ -389,20 +364,20 @@ export default function UsersInvites() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {pendingRegistrations.map((authUser) => (
-                    <TableRow key={authUser.id}>
-                      <TableCell>{authUser.email}</TableCell>
-                      <TableCell>{authUser.user_metadata?.name || '-'}</TableCell>
+                  {pendingApprovalUsers.map((user) => (
+                    <TableRow key={user.id}>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell>{user.name || '-'}</TableCell>
                       <TableCell>
-                        {new Date(authUser.created_at).toLocaleDateString('pt-BR')}
+                        {new Date(user.created_at).toLocaleDateString('pt-BR')}
                       </TableCell>
                       <TableCell className="text-right">
                         <Button
                           size="sm"
-                          onClick={() => handleAcceptRegistration(authUser)}
+                          onClick={() => handleAcceptRegistration(user)}
                         >
                           <UserCheck className="mr-2 h-4 w-4" />
-                          Aceitar
+                          Aprovar
                         </Button>
                       </TableCell>
                     </TableRow>

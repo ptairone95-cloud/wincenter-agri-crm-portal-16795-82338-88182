@@ -902,7 +902,7 @@ export type Database = {
       service_status: "scheduled" | "completed" | "cancelled"
       service_type: "maintenance" | "revision" | "spraying"
       user_role: "admin" | "seller" | "technician"
-      user_status: "active" | "inactive" | "invited"
+      user_status: "active" | "inactive" | "invited" | "pending"
       visit_status: "scheduled" | "completed" | "cancelled"
     }
     CompositeTypes: {
@@ -1071,7 +1071,7 @@ export const Constants = {
       service_status: ["scheduled", "completed", "cancelled"],
       service_type: ["maintenance", "revision", "spraying"],
       user_role: ["admin", "seller", "technician"],
-      user_status: ["active", "inactive", "invited"],
+      user_status: ["active", "inactive", "invited", "pending"],
       visit_status: ["scheduled", "completed", "cancelled"],
     },
   },
