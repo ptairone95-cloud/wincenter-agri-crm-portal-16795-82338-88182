@@ -1,12 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Cloud, Droplets, Wind, Thermometer, Search, CloudRain } from 'lucide-react';
+import { Cloud, Droplets, Wind, Thermometer, Search, CloudRain, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
-interface WeatherData {
+export interface WeatherData {
   temperature: number;
   humidity: number;
   windSpeed: number;
@@ -17,10 +19,22 @@ interface WeatherData {
 
 const WEATHER_API_KEY = '2266f269be41b5b6234971e5e0a7e46d';
 
-export function WeatherForecast() {
+interface WeatherForecastProps {
+  selectedDate?: string;
+  onWeatherChange?: (weather: WeatherData | null) => void;
+  showCard?: boolean;
+}
+
+export function WeatherForecast({ selectedDate, onWeatherChange, showCard = true }: WeatherForecastProps) {
   const [city, setCity] = useState('');
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (onWeatherChange) {
+      onWeatherChange(weather);
+    }
+  }, [weather, onWeatherChange]);
 
   const fetchWeather = async () => {
     if (!city.trim()) {
@@ -66,15 +80,16 @@ export function WeatherForecast() {
     }
   };
 
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Cloud className="h-5 w-5" />
-          Previsão do Tempo
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
+  const content = (
+    <div className="space-y-4">
+      {selectedDate && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground pb-2 border-b">
+          <Calendar className="h-4 w-4" />
+          <span>
+            {format(new Date(selectedDate), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}
+          </span>
+        </div>
+      )}
         <div className="flex gap-2">
           <div className="flex-1">
             <Label htmlFor="city">Cidade</Label>
@@ -126,6 +141,23 @@ export function WeatherForecast() {
             </div>
           </div>
         )}
+    </div>
+  );
+
+  if (!showCard) {
+    return content;
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Cloud className="h-5 w-5" />
+          Previsão do Tempo
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {content}
       </CardContent>
     </Card>
   );

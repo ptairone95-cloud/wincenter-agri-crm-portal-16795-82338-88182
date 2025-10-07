@@ -247,6 +247,13 @@ export type Database = {
           notes: string | null
           products: string[] | null
           status: Database["public"]["Enums"]["demo_status"]
+          weather_city: string | null
+          weather_description: string | null
+          weather_fetched_at: string | null
+          weather_humidity: number | null
+          weather_temperature: number | null
+          weather_will_rain: boolean | null
+          weather_wind_speed: number | null
         }
         Insert: {
           assigned_users?: string[] | null
@@ -260,6 +267,13 @@ export type Database = {
           notes?: string | null
           products?: string[] | null
           status?: Database["public"]["Enums"]["demo_status"]
+          weather_city?: string | null
+          weather_description?: string | null
+          weather_fetched_at?: string | null
+          weather_humidity?: number | null
+          weather_temperature?: number | null
+          weather_will_rain?: boolean | null
+          weather_wind_speed?: number | null
         }
         Update: {
           assigned_users?: string[] | null
@@ -273,6 +287,13 @@ export type Database = {
           notes?: string | null
           products?: string[] | null
           status?: Database["public"]["Enums"]["demo_status"]
+          weather_city?: string | null
+          weather_description?: string | null
+          weather_fetched_at?: string | null
+          weather_humidity?: number | null
+          weather_temperature?: number | null
+          weather_will_rain?: boolean | null
+          weather_wind_speed?: number | null
         }
         Relationships: [
           {

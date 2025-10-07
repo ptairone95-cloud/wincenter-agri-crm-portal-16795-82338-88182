@@ -94,6 +94,7 @@ export default function Demonstrations() {
   const [selectedDate, setSelectedDate] = useState('');
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [submittingServiceId, setSubmittingServiceId] = useState<string | null>(null);
+  const [weatherData, setWeatherData] = useState<any>(null);
   const [formData, setFormData] = useState({
     client_id: '',
     assigned_users: [] as string[],
@@ -261,6 +262,13 @@ export default function Demonstrations() {
         date: new Date(selectedDate).toISOString(),
         notes: formData.notes || null,
         status: 'scheduled',
+        weather_city: weatherData?.cityName || null,
+        weather_temperature: weatherData?.temperature || null,
+        weather_humidity: weatherData?.humidity || null,
+        weather_wind_speed: weatherData?.windSpeed || null,
+        weather_will_rain: weatherData?.willRain || null,
+        weather_description: weatherData?.description || null,
+        weather_fetched_at: weatherData ? new Date().toISOString() : null,
       };
 
       console.log('Demo data being inserted:', demoData);
@@ -333,6 +341,7 @@ export default function Demonstrations() {
       notes: '',
     });
     setSelectedDate('');
+    setWeatherData(null);
   };
 
   const resetServiceForm = () => {
@@ -935,6 +944,14 @@ export default function Demonstrations() {
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                   rows={3}
                   placeholder="Detalhes sobre a demonstração..."
+                />
+              </div>
+
+              <div className="border-t pt-4">
+                <WeatherForecast 
+                  selectedDate={selectedDate} 
+                  onWeatherChange={setWeatherData}
+                  showCard={false}
                 />
               </div>
 
